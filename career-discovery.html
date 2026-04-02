@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PathFinder — Discover Your Career DNA</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121f;
+    --surface2: #1a1a2e;
+    --border: #ffffff0d;
+    --border2: #ffffff1a;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #f472b6;
+    --accent5: #fb923c;
+    --text: #f1f1f3;
+    --text2: #9898b0;
+    --text3: #5a5a7a;
+    --glow: rgba(124,106,247,0.25);
+    --radius: 16px;
+    --radius2: 24px;
+    --red: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── BACKGROUND ORBS ─── */
+  .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15; animation: drift 20s ease-in-out infinite; }
+  .orb1 { width: 500px; height: 500px; background: #7c6af7; top: -100px; left: -100px; animation-delay: 0s; }
+  .orb2 { width: 400px; height: 400px; background: #34d399; bottom: -100px; right: -50px; animation-delay: -7s; }
+  .orb3 { width: 300px; height: 300px; background: #f472b6; top: 40%; left: 30%; animation-delay: -14s; }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%      { transform: translate(30px,-30px) scale(1.05); }
+    66%      { transform: translate(-20px,20px) scale(0.95); }
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar-wrap { position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 3px; background: rgba(255,255,255,0.05); }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 0.5s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 12px var(--glow); }
+
+  /* ─── TOP NAV ─── */
+  .topnav {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 199; display: flex; align-items: center; gap: 12px;
+    background: rgba(18,18,31,0.85); backdrop-filter: blur(20px);
+    border: 1px solid var(--border2); border-radius: 50px;
+    padding: 10px 16px; width: min(720px, calc(100vw - 32px));
+  }
+  .logo-area { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); flex-shrink: 0; }
+  .logo-text { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; color: var(--text); }
+  .step-counter { font-size: 12px; color: var(--text2); flex: 1; text-align: center; }
+  .nav-auth { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .nav-btn-login {
+    background: transparent; color: var(--text2); border: 1px solid var(--border2);
+    border-radius: 50px; padding: 6px 14px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .nav-btn-login:hover { color: var(--text); border-color: var(--border); }
+  .nav-btn-signup {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 50px; padding: 6px 14px; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .nav-btn-signup:hover { background: var(--accent2); }
+  .nav-user-area { display: flex; align-items: center; gap: 8px; }
+  .nav-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+  .nav-username { font-size: 12px; font-weight: 700; color: var(--text); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-btn-dash {
+    background: transparent; color: var(--text3); border: 1px solid var(--border2);
+    border-radius: 50px; padding: 5px 12px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .nav-btn-dash:hover { color: var(--text2); }
+  .nav-btn-logout {
+    background: transparent; color: var(--text3); border: none;
+    font-size: 11px; cursor: pointer; transition: color 0.2s; padding: 4px;
+  }
+  .nav-btn-logout:hover { color: var(--red); }
+
+  /* ─── LAYOUT ─── */
+  #app { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; padding: 0 20px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; padding: 100px 0 60px; animation: fadeUp 0.45s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── AUTH FORMS ─── */
+  .auth-wrap { max-width: 440px; margin: 0 auto; }
+  .auth-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text3); border: none;
+    font-size: 13px; cursor: pointer; transition: color 0.2s; margin-bottom: 32px; padding: 0;
+  }
+  .auth-back:hover { color: var(--text2); }
+  .auth-icon { font-size: 36px; margin-bottom: 16px; }
+  .auth-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .auth-sub { font-size: 14px; color: var(--text2); margin-bottom: 32px; line-height: 1.6; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .form-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 13px 16px; font-size: 14px; color: var(--text);
+    outline: none; transition: all 0.2s; font-family: inherit;
+  }
+  .form-input::placeholder { color: var(--text3); }
+  .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,106,247,0.15); }
+  .form-input.error-field { border-color: var(--red); }
+  .form-error { font-size: 12px; color: var(--red); margin-top: 6px; display: none; }
+  .form-error.show { display: block; }
+  .form-submit {
+    width: 100%; background: linear-gradient(135deg, var(--accent), #6d52f7);
+    color: #fff; border: none; border-radius: var(--radius); padding: 15px;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 8px;
+    box-shadow: 0 0 30px rgba(124,106,247,0.3);
+  }
+  .form-submit:hover { transform: translateY(-1px); box-shadow: 0 0 40px rgba(124,106,247,0.45); }
+  .form-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text3); }
+  .form-switch a { color: var(--accent2); text-decoration: none; font-weight: 600; cursor: pointer; }
+  .form-switch a:hover { color: var(--text); }
+  .auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text3); font-size: 12px; }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .guest-btn {
+    width: 100%; background: transparent; color: var(--text3); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 13px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .guest-btn:hover { color: var(--text2); border-color: var(--border); }
+  .save-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px;
+    font-size: 13px; color: var(--accent3);
+  }
+  .save-banner-icon { font-size: 18px; flex-shrink: 0; }
+  .unsaved-banner {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    background: rgba(124,106,247,0.08); border: 1px solid rgba(124,106,247,0.25);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px;
+  }
+  .unsaved-banner-text { font-size: 13px; color: var(--accent2); }
+  .unsaved-btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .unsaved-btn:hover { background: var(--accent2); }
+
+  /* ─── DASHBOARD ─── */
+  .dash-header { margin-bottom: 36px; }
+  .dash-welcome { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.8px; margin-bottom: 6px; }
+  .dash-welcome span { background: linear-gradient(135deg, var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .dash-sub { font-size: 14px; color: var(--text2); }
+  .dash-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 36px; }
+  .dash-btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, var(--accent), #6d52f7); color: #fff; border: none;
+    border-radius: var(--radius); padding: 13px 22px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; box-shadow: 0 0 24px rgba(124,106,247,0.3);
+  }
+  .dash-btn-primary:hover { transform: translateY(-1px); }
+  .dash-section-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .dash-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .history-empty {
+    background: var(--surface); border: 1px dashed var(--border2); border-radius: var(--radius2);
+    padding: 48px 24px; text-align: center;
+  }
+  .history-empty-icon { font-size: 40px; margin-bottom: 14px; }
+  .history-empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .history-empty-sub { font-size: 13px; color: var(--text3); }
+  .history-grid { display: flex; flex-direction: column; gap: 12px; }
+  .history-card {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius2); padding: 20px 22px;
+    display: flex; align-items: center; gap: 16px; transition: all 0.2s;
+    cursor: pointer;
+  }
+  .history-card:hover { border-color: var(--border); transform: translateY(-1px); }
+  .history-avatar { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: rgba(124,106,247,0.12); }
+  .history-info { flex: 1; min-width: 0; }
+  .history-archetype { font-size: 15px; font-weight: 800; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-career { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .history-date { font-size: 11px; color: var(--text3); }
+  .history-score { font-size: 1.2rem; font-weight: 800; color: var(--accent2); flex-shrink: 0; }
+  .profile-info-card {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius2); padding: 22px 24px; margin-top: 12px;
+  }
+  .profile-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-row-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
+  .profile-row-value { font-size: 14px; font-weight: 600; color: var(--text2); }
+
+  /* ─── HERO ─── */
+  .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(124,106,247,0.12); border: 1px solid rgba(124,106,247,0.25); border-radius: 50px; padding: 6px 14px; font-size: 12px; color: var(--accent2); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 28px; }
+  .hero-title { font-size: clamp(2.4rem, 6vw, 3.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px; }
+  .hero-title span { background: linear-gradient(135deg, var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-sub { font-size: 1.1rem; color: var(--text2); line-height: 1.7; max-width: 560px; margin-bottom: 40px; }
+  .hero-features { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+  .feature-pill { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border2); border-radius: 50px; padding: 7px 14px; font-size: 13px; color: var(--text2); }
+  .hero-cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cta-btn { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, var(--accent), #6d52f7); color: #fff; border: none; border-radius: var(--radius); padding: 16px 32px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 40px rgba(124,106,247,0.35); }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(124,106,247,0.5); }
+  .cta-btn .arrow { transition: transform 0.2s; }
+  .cta-btn:hover .arrow { transform: translateX(4px); }
+  .cta-btn-secondary { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 15px 24px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .cta-btn-secondary:hover { color: var(--text); border-color: var(--border); }
+  .hero-signin-note { font-size: 13px; color: var(--text3); margin-bottom: 32px; }
+  .hero-signin-note a { color: var(--accent2); text-decoration: none; cursor: pointer; font-weight: 600; }
+  .hero-signin-note a:hover { color: var(--text); }
+  .origin-card { margin-top: 40px; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius2); padding: 24px 28px; position: relative; overflow: hidden; }
+  .origin-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(180deg, var(--accent), var(--accent3)); }
+  .origin-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent2); margin-bottom: 10px; }
+  .origin-text { font-size: 14px; color: var(--text2); line-height: 1.75; }
+  .origin-text strong { color: var(--text); font-weight: 700; }
+  .hero-stats { display: flex; gap: 32px; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--border); }
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-num { font-size: 1.5rem; font-weight: 800; }
+  .stat-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ─── QUESTION SCREEN ─── */
+  .q-category { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2); margin-bottom: 10px; }
+  .q-text { font-size: clamp(1.3rem, 3.5vw, 1.8rem); font-weight: 700; line-height: 1.3; letter-spacing: -0.5px; }
+  .q-sub { font-size: 14px; color: var(--text2); margin-top: 8px; margin-bottom: 28px; }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 36px; }
+  @media (max-width: 500px) { .options-grid { grid-template-columns: 1fr; } }
+  .option-card { background: var(--surface); border: 2px solid var(--border2); border-radius: var(--radius); padding: 18px 20px; cursor: pointer; transition: all 0.2s; text-align: left; position: relative; overflow: hidden; }
+  .option-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .option-card.selected { border-color: var(--accent); background: rgba(124,106,247,0.1); box-shadow: 0 0 0 1px var(--accent), 0 0 20px rgba(124,106,247,0.15); }
+  .option-letter { width: 26px; height: 26px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text3); margin-bottom: 10px; transition: all 0.2s; }
+  .option-card.selected .option-letter { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .option-text { font-size: 14px; color: var(--text2); line-height: 1.5; font-weight: 500; }
+  .option-card.selected .option-text { color: var(--text); }
+  .q-nav { display: flex; align-items: center; justify-content: space-between; }
+  .q-dots { display: flex; gap: 6px; }
+  .q-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); transition: all 0.3s; }
+  .q-dot.done { background: var(--accent); }
+  .q-dot.current { background: var(--accent3); width: 18px; border-radius: 3px; }
+  .btn-next { display: flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 13px 24px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none; }
+  .btn-next.ready { opacity: 1; pointer-events: all; }
+  .btn-next.ready:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-back { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 13px 20px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-back:hover { color: var(--text2); border-color: var(--border); }
+
+  /* ─── LOADING ─── */
+  .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; }
+  .loader-ring { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--border2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; margin-bottom: 28px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+  .loading-sub { font-size: 14px; color: var(--text2); }
+  .loading-steps { margin-top: 32px; display: flex; flex-direction: column; gap: 10px; width: 320px; }
+  .loading-step { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 16px; font-size: 13px; color: var(--text3); opacity: 0; transform: translateX(-10px); transition: all 0.4s; }
+  .loading-step.show { opacity: 1; transform: translateX(0); color: var(--text2); }
+
+  /* ─── RESULTS ─── */
+  .results-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent3); margin-bottom: 12px; }
+  .results-title { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+  .results-sub { font-size: 15px; color: var(--text2); margin-bottom: 32px; line-height: 1.6; }
+  .profile-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius2); padding: 28px; margin-bottom: 28px; position: relative; overflow: hidden; }
+  .profile-card::after { content: ''; position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle, var(--glow) 0%, transparent 70%); pointer-events: none; }
+  .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .profile-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .profile-name { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+  .profile-type { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.3px; }
+  .profile-desc { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 24px; }
+  .trait-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .trait-chip { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 50px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--text2); }
+  .trait-chip .tdot { width: 6px; height: 6px; border-radius: 50%; }
+  .dims-title { font-size: 13px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+  .dim-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .dim-label { font-size: 13px; color: var(--text2); width: 130px; flex-shrink: 0; }
+  .dim-bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .dim-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+  .dim-bar-fill.green { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+  .dim-bar-fill.pink { background: linear-gradient(90deg, #f472b6, #f9a8d4); }
+  .dim-bar-fill.orange { background: linear-gradient(90deg, #fb923c, #fcd34d); }
+  .dim-pct { font-size: 12px; color: var(--text3); width: 36px; text-align: right; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; margin-top: 32px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .career-grid { display: flex; flex-direction: column; gap: 14px; }
+  .career-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius2); padding: 22px 24px; transition: all 0.25s; cursor: default; position: relative; overflow: hidden; }
+  .career-card:hover { border-color: var(--border); transform: translateY(-2px); }
+  .career-card.top { border-color: rgba(124,106,247,0.35); background: rgba(124,106,247,0.04); }
+  .career-card.top::before { content: '★ Best Match'; position: absolute; top: 16px; right: 16px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 50px; }
+  .career-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+  .career-icon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .career-info { flex: 1; }
+  .career-title { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 3px; }
+  .career-field { font-size: 12px; color: var(--text3); }
+  .match-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .match-pct { font-size: 1.1rem; font-weight: 800; color: var(--accent2); min-width: 46px; }
+  .match-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .match-fill { height: 100%; border-radius: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .career-why { font-size: 13px; color: var(--text2); line-height: 1.55; margin-bottom: 12px; }
+  .career-roles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .role-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--text3); }
+  .skills-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .skill-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; }
+  .skill-icon { font-size: 22px; margin-bottom: 8px; }
+  .skill-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .skill-desc { font-size: 12px; color: var(--text3); line-height: 1.4; }
+  .steps-list { display: flex; flex-direction: column; gap: 10px; }
+  .step-item { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 18px 20px; display: flex; gap: 16px; align-items: flex-start; transition: all 0.2s; }
+  .step-item:hover { border-color: var(--border); }
+  .step-num { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .step-body { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .step-tag { display: inline-block; margin-top: 8px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25); color: var(--accent3); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 50px; letter-spacing: 0.3px; }
+  .restart-row { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-restart { display: flex; align-items: center; gap: 8px; background: transparent; color: var(--text3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 20px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-restart:hover { color: var(--text2); border-color: var(--border); }
+  .btn-share { display: flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .btn-share:hover { background: var(--accent2); }
+
+  /* ─── FOOTER ─── */
+  .site-footer { position: relative; z-index: 1; text-align: center; padding: 32px 20px 44px; border-top: 1px solid var(--border); margin-top: 60px; }
+  .footer-made { font-size: 13px; color: var(--text3); margin-bottom: 6px; }
+  .footer-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+  .footer-link { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border2); border-radius: 50px; padding: 7px 16px; font-size: 12px; font-weight: 600; color: var(--accent2); text-decoration: none; transition: all 0.2s; }
+  .footer-link:hover { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+  .footer-link svg { width: 14px; height: 14px; fill: currentColor; }
+  .footer-note { margin-top: 16px; font-size: 11px; color: var(--text3); line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+</div>
+
+<nav class="topnav">
+  <div class="logo-area" onclick="goHome()">
+    <div class="logo-dot"></div>
+    <span class="logo-text">PathFinder</span>
+  </div>
+  <span class="step-counter" id="stepCounter"></span>
+  <div class="nav-auth" id="navAuth">
+    <!-- filled by JS -->
+  </div>
+</nav>
+
+<div id="app">
+
+  <!-- ═══ HERO SCREEN ═══ -->
+  <div class="screen active" id="screen-hero">
+    <div class="hero-eyebrow"><span>✦</span> Career Intelligence Assessment</div>
+    <h1 class="hero-title">Uncover your<br><span>career DNA</span></h1>
+    <p class="hero-sub">Answer 15 questions about how you think, work, and what energises you. Our engine maps your behavioural patterns to career paths where you'll genuinely thrive.</p>
+    <div class="hero-features">
+      <div class="feature-pill"><span>🧠</span> Behavioural Analysis</div>
+      <div class="feature-pill"><span>🎯</span> Skills Identification</div>
+      <div class="feature-pill"><span>🗺️</span> Career Path Mapping</div>
+      <div class="feature-pill"><span>⚡</span> Instant Next Steps</div>
+      <div class="feature-pill"><span>💾</span> Save Your Results</div>
+    </div>
+
+    <div id="heroCTA"><!-- filled by JS --></div>
+
+    <div class="origin-card">
+      <div class="origin-label">Why this exists</div>
+      <p class="origin-text">
+        <strong>I built this after finishing university with no clear idea of where I was headed.</strong>
+        I had skills, drive, and ambition — but no framework for connecting who I am to what I should do next.
+        Every career quiz felt shallow. Every job board felt overwhelming. I wanted something that actually
+        <em>understood</em> how I think and work, not just what I'd studied. So I built it.
+        If you're feeling lost after graduation — or just stuck at a crossroads — this is for you.
+      </p>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item"><span class="stat-num">15</span><span class="stat-label">Questions</span></div>
+      <div class="stat-item"><span class="stat-num">~5 min</span><span class="stat-label">Duration</span></div>
+      <div class="stat-item"><span class="stat-num">12+</span><span class="stat-label">Career Paths</span></div>
+      <div class="stat-item"><span class="stat-num">Free</span><span class="stat-label">Always</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ SIGNUP SCREEN ═══ -->
+  <div class="screen" id="screen-signup">
+    <div class="auth-wrap">
+      <button class="auth-back" onclick="showScreen('hero')">← Back</button>
+      <div class="auth-icon">✨</div>
+      <h2 class="auth-title">Create your account</h2>
+      <p class="auth-sub">Sign up to save your results, track your progress, and revisit your career profile any time.</p>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="signupName" type="text" placeholder="e.g. Demi Adewole" autocomplete="name" />
+        <div class="form-error" id="signupNameErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="signupEmail" type="email" placeholder="you@email.com" autocomplete="email" />
+        <div class="form-error" id="signupEmailErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="signupPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+        <div class="form-error" id="signupPasswordErr"></div>
+      </div>
+      <div class="form-error" id="signupGlobalErr"></div>
+      <button class="form-submit" onclick="handleSignup()">Create Account & Start →</button>
+      <div class="auth-divider">or</div>
+      <button class="guest-btn" onclick="startAsGuest()">Continue as Guest (results won't be saved)</button>
+      <div class="form-switch">Already have an account? <a onclick="showScreen('login')">Log in</a></div>
+    </div>
+  </div>
+
+  <!-- ═══ LOGIN SCREEN ═══ -->
+  <div class="screen" id="screen-login">
+    <div class="auth-wrap">
+      <button class="auth-back" onclick="showScreen('hero')">← Back</button>
+      <div class="auth-icon">👋</div>
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-sub">Log in to access your saved results and career profile.</p>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="loginEmail" type="email" placeholder="you@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password" />
+      </div>
+      <div class="form-error" id="loginErr"></div>
+      <button class="form-submit" onclick="handleLogin()">Log In →</button>
+      <div class="auth-divider">or</div>
+      <button class="guest-btn" onclick="startAsGuest()">Continue as Guest</button>
+      <div class="form-switch">No account yet? <a onclick="showScreen('signup')">Sign up free</a></div>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD SCREEN ═══ -->
+  <div class="screen" id="screen-dashboard">
+    <div class="dash-header">
+      <div class="dash-welcome">Hey, <span id="dashName">there</span> 👋</div>
+      <div class="dash-sub">Here's your PathFinder profile and assessment history.</div>
+    </div>
+    <div class="dash-actions">
+      <button class="dash-btn-primary" onclick="startLoggedInAssessment()">+ New Assessment</button>
+    </div>
+
+    <div class="dash-section-title">Past Assessments</div>
+    <div id="historyContainer"><!-- filled by JS --></div>
+
+    <div class="dash-section-title" style="margin-top:32px;">Account</div>
+    <div class="profile-info-card" id="profileInfoCard"><!-- filled by JS --></div>
+  </div>
+
+  <!-- ═══ QUESTION SCREEN ═══ -->
+  <div class="screen" id="screen-question">
+    <div style="margin-bottom:28px;">
+      <div class="q-category" id="qCategory"></div>
+      <div class="q-text" id="qText"></div>
+      <div class="q-sub" id="qSub"></div>
+    </div>
+    <div class="options-grid" id="optionsGrid"></div>
+    <div class="q-nav">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn-back" id="btnBack" onclick="prevQuestion()">← Back</button>
+        <div class="q-dots" id="qDots"></div>
+      </div>
+      <button class="btn-next" id="btnNext" onclick="nextQuestion()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ═══ LOADING SCREEN ═══ -->
+  <div class="screen" id="screen-loading">
+    <div class="loading-wrap">
+      <div class="loader-ring"></div>
+      <div class="loading-title">Analysing your profile…</div>
+      <div class="loading-sub">Mapping your patterns to over 40 career dimensions</div>
+      <div class="loading-steps">
+        <div class="loading-step" id="ls1"><span>🔍</span> Identifying behavioural patterns</div>
+        <div class="loading-step" id="ls2"><span>⚙️</span> Extracting transferable skills</div>
+        <div class="loading-step" id="ls3"><span>🗺️</span> Scoring 40+ career dimensions</div>
+        <div class="loading-step" id="ls4"><span>✨</span> Building your personalised roadmap</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RESULTS SCREEN ═══ -->
+  <div class="screen" id="screen-results">
+    <div id="resultsSaveBanner"><!-- filled by JS --></div>
+    <div class="results-eyebrow">✦ Your Results</div>
+    <h2 class="results-title" id="resultsTitle">Your Career DNA</h2>
+    <p class="results-sub" id="resultsSub"></p>
+    <div class="profile-card" id="profileCard">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar"></div>
+        <div>
+          <div class="profile-name">Your Behavioural Archetype</div>
+          <div class="profile-type" id="profileType"></div>
+        </div>
+      </div>
+      <p class="profile-desc" id="profileDesc"></p>
+      <div class="trait-list" id="traitList"></div>
+    </div>
+    <div class="profile-card">
+      <div class="dims-title">Your Strength Dimensions</div>
+      <div id="dimsContainer"></div>
+    </div>
+    <div class="section-label">Identified Skills</div>
+    <div class="skills-wrap" id="skillsWrap"></div>
+    <div class="section-label">Career Path Recommendations</div>
+    <div class="career-grid" id="careerGrid"></div>
+    <div class="section-label">Your Next Steps — Start Today</div>
+    <div class="steps-list" id="stepsList"></div>
+    <div class="restart-row">
+      <button class="btn-restart" onclick="restart()">↺ Retake Assessment</button>
+      <button class="btn-share" onclick="copyResults()">📋 Copy Summary</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="site-footer">
+  <div class="footer-made">Designed &amp; built by</div>
+  <div class="footer-name">Demi Adewole</div>
+  <a class="footer-link" href="http://linkedin.com/in/demiadewole" target="_blank" rel="noopener noreferrer">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    linkedin.com/in/demiadewole
+  </a>
+  <p class="footer-note">Built out of personal experience — graduating university and not knowing which path to take. PathFinder is a passion project to help others find clarity through self-understanding.</p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  LOCAL STORAGE AUTH
+// ═══════════════════════════════════════════════════
+const USERS_KEY    = 'pf_users';
+const SESSION_KEY  = 'pf_session';
+const RESULTS_PRE  = 'pf_results_';
+
+function getUsers()          { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e){ return []; } }
+function saveUsers(u)        { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function getSession()        { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){ return null; } }
+function setSession(u)       { localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+function clearSession()      { localStorage.removeItem(SESSION_KEY); }
+function getUserResults(uid) { try { return JSON.parse(localStorage.getItem(RESULTS_PRE + uid) || '[]'); } catch(e){ return []; } }
+function pushResult(uid, r)  { const all = getUserResults(uid); all.unshift(r); localStorage.setItem(RESULTS_PRE + uid, JSON.stringify(all.slice(0,20))); }
+
+function doSignup(name, email, password) {
+  const users = getUsers();
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) return { error: 'An account with that email already exists.' };
+  const user = { id: Date.now().toString(), name: name.trim(), email: email.trim().toLowerCase(), pw: btoa(unescape(encodeURIComponent(password))), createdAt: new Date().toISOString() };
+  users.push(user);
+  saveUsers(users);
+  setSession(user);
+  return { user };
+}
+
+function doLogin(email, password) {
+  const users = getUsers();
+  const encoded = btoa(unescape(encodeURIComponent(password)));
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pw === encoded);
+  if (!user) return { error: 'Incorrect email or password.' };
+  setSession(user);
+  return { user };
+}
+
+function doLogout() {
+  clearSession();
+  currentUser = null;
+  updateNav();
+  showScreen('hero');
+  renderHeroCTA();
+}
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let currentUser   = getSession();
+let currentQ      = 0;
+let answers       = new Array(15).fill(null);
+let scores        = {};
+let isGuest       = false;
+let lastResultData = null;
+
+// ═══════════════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════════════
+function updateNav() {
+  const el = document.getElementById('navAuth');
+  if (currentUser) {
+    const initials = currentUser.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    el.innerHTML = `
+      <div class="nav-user-area">
+        <div class="nav-avatar">${initials}</div>
+        <span class="nav-username">${currentUser.name.split(' ')[0]}</span>
+        <button class="nav-btn-dash" onclick="openDashboard()">My Profile</button>
+        <button class="nav-btn-logout" onclick="doLogout()" title="Log out">✕</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <button class="nav-btn-login" onclick="showScreen('login')">Log in</button>
+      <button class="nav-btn-signup" onclick="showScreen('signup')">Sign up</button>`;
+  }
+}
+
+function goHome() {
+  showScreen('hero');
+  renderHeroCTA();
+  document.getElementById('stepCounter').textContent = '';
+  document.getElementById('progressBar').style.width = '0%';
+}
+
+// ═══════════════════════════════════════════════════
+//  HERO CTA
+// ═══════════════════════════════════════════════════
+function renderHeroCTA() {
+  const el = document.getElementById('heroCTA');
+  if (currentUser) {
+    el.innerHTML = `
+      <div style="margin-top:8px;">
+        <div class="hero-cta-row">
+          <button class="cta-btn" onclick="startLoggedInAssessment()">Start Assessment <span class="arrow">→</span></button>
+          <button class="cta-btn-secondary" onclick="openDashboard()">📊 My Profile</button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div style="margin-top:8px;">
+        <div class="hero-cta-row">
+          <button class="cta-btn" onclick="showScreen('signup')">Sign up &amp; Start <span class="arrow">→</span></button>
+          <button class="cta-btn-secondary" onclick="startAsGuest()">Try as Guest</button>
+        </div>
+        <p class="hero-signin-note" style="margin-top:14px;">Already have an account? <a onclick="showScreen('login')">Log in</a></p>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function startLoggedInAssessment() { isGuest = false; resetAssessment(); }
+function startAsGuest()            { isGuest = true;  resetAssessment(); }
+
+function resetAssessment() {
+  currentQ = 0;
+  answers  = new Array(questions.length).fill(null);
+  showScreen('question');
+  renderQuestion();
+  updateProgress();
+}
+
+function openDashboard() {
+  if (!currentUser) { showScreen('login'); return; }
+  renderDashboard();
+  showScreen('dashboard');
+}
+
+// ═══════════════════════════════════════════════════
+//  AUTH HANDLERS
+// ═══════════════════════════════════════════════════
+function clearFieldError(id) { const e = document.getElementById(id); if(e){ e.classList.remove('show'); } }
+function setFieldError(fieldId, errId, msg) {
+  const f = document.getElementById(fieldId), e = document.getElementById(errId);
+  if(f) f.classList.add('error-field');
+  if(e){ e.textContent = msg; e.classList.add('show'); }
+}
+
+function handleSignup() {
+  ['signupName','signupEmail','signupPassword'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('error-field'); });
+  ['signupNameErr','signupEmailErr','signupPasswordErr','signupGlobalErr'].forEach(clearFieldError);
+
+  const name  = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass  = document.getElementById('signupPassword').value;
+  let ok = true;
+
+  if (!name)           { setFieldError('signupName','signupNameErr','Please enter your name.'); ok = false; }
+  if (!email || !email.includes('@')) { setFieldError('signupEmail','signupEmailErr','Please enter a valid email.'); ok = false; }
+  if (pass.length < 6){ setFieldError('signupPassword','signupPasswordErr','Password must be at least 6 characters.'); ok = false; }
+  if (!ok) return;
+
+  const result = doSignup(name, email, pass);
+  if (result.error) {
+    const e = document.getElementById('signupGlobalErr');
+    e.textContent = result.error; e.classList.add('show'); return;
+  }
+  currentUser = result.user;
+  updateNav();
+  renderHeroCTA();
+  isGuest = false;
+  resetAssessment();
+}
+
+function handleLogin() {
+  const e = document.getElementById('loginErr');
+  e.classList.remove('show');
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  if (!email || !pass) { e.textContent = 'Please fill in both fields.'; e.classList.add('show'); return; }
+  const result = doLogin(email, pass);
+  if (result.error) { e.textContent = result.error; e.classList.add('show'); return; }
+  currentUser = result.user;
+  updateNav();
+  renderHeroCTA();
+  openDashboard();
+}
+
+// ─── enter key support ───
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter') return;
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  if (active.id === 'screen-signup')  handleSignup();
+  if (active.id === 'screen-login')   handleLogin();
+  if (active.id === 'screen-question') nextQuestion();
+});
+
+// ═══════════════════════════════════════════════════
+//  DASHBOARD RENDERING
+// ═══════════════════════════════════════════════════
+function renderDashboard() {
+  document.getElementById('dashName').textContent = currentUser.name.split(' ')[0];
+
+  // History
+  const results = getUserResults(currentUser.id);
+  const hc = document.getElementById('historyContainer');
+  if (results.length === 0) {
+    hc.innerHTML = `<div class="history-empty">
+      <div class="history-empty-icon">🗺️</div>
+      <div class="history-empty-title">No assessments yet</div>
+      <div class="history-empty-sub">Take your first assessment to discover your career DNA.</div>
+    </div>`;
+  } else {
+    hc.innerHTML = `<div class="history-grid">${results.map((r, i) => `
+      <div class="history-card" onclick="viewSavedResult(${i})">
+        <div class="history-avatar">${r.archetypeEmoji}</div>
+        <div class="history-info">
+          <div class="history-archetype">${r.archetypeTitle}</div>
+          <div class="history-career">Top match: ${r.topCareer}</div>
+          <div class="history-date">${formatDate(r.date)}</div>
+        </div>
+        <div class="history-score">${r.topScore}%</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Account info
+  const pic = document.getElementById('profileInfoCard');
+  pic.innerHTML = `
+    <div class="profile-row"><span class="profile-row-label">Name</span><span class="profile-row-value">${currentUser.name}</span></div>
+    <div class="profile-row"><span class="profile-row-label">Email</span><span class="profile-row-value">${currentUser.email}</span></div>
+    <div class="profile-row"><span class="profile-row-label">Member since</span><span class="profile-row-value">${formatDate(currentUser.createdAt)}</span></div>
+    <div class="profile-row"><span class="profile-row-label">Assessments</span><span class="profile-row-value">${results.length}</span></div>`;
+}
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  } catch(e) { return iso; }
+}
+
+function viewSavedResult(idx) {
+  const results = getUserResults(currentUser.id);
+  if (!results[idx]) return;
+  scores = results[idx].scores;
+  lastResultData = results[idx];
+  renderResults(scores, false);
+  showScreen('results');
+  animateBars();
+}
+
+// ═══════════════════════════════════════════════════
+//  QUESTIONS
+// ═══════════════════════════════════════════════════
+const questions = [
+  { category:"Problem Solving", text:"When you face a complex problem, your first instinct is to…", sub:"Choose what feels most natural — not what you think is \"correct.\"", options:[
+    { text:"Break it into logical steps and gather as much data as possible", scores:{analytical:3,technical:1} },
+    { text:"Brainstorm freely and let ideas connect organically", scores:{creative:3,entrepreneurial:1} },
+    { text:"Talk it through with someone — conversation sparks clarity", scores:{people:3,communication:1} },
+    { text:"Look up how others have solved it before and adapt", scores:{research:3,structured:1} },
+  ]},
+  { category:"Working Style", text:"When working on a project, you feel most productive when…", sub:"", options:[
+    { text:"I have full ownership and work independently at my own pace", scores:{entrepreneurial:2,analytical:1} },
+    { text:"I'm collaborating closely — I feed off other people's energy", scores:{people:3,communication:1} },
+    { text:"There's a clear structure, deadlines, and defined milestones", scores:{structured:3,leadership:1} },
+    { text:"I can experiment freely without rigid constraints", scores:{creative:3,entrepreneurial:1} },
+  ]},
+  { category:"What Energises You", text:"At the end of a great workday, you feel energised because you…", sub:"", options:[
+    { text:"Solved a tricky technical or logical problem", scores:{technical:3,analytical:2} },
+    { text:"Helped someone, made a connection, or built a relationship", scores:{people:3,communication:2} },
+    { text:"Created something that didn't exist before", scores:{creative:3,entrepreneurial:2} },
+    { text:"Led something that moved forward and delivered results", scores:{leadership:3,structured:1} },
+  ]},
+  { category:"Learning Style", text:"When you pick up a new skill, you prefer to…", sub:"", options:[
+    { text:"Read documentation, take a course, and understand the theory first", scores:{research:3,analytical:2} },
+    { text:"Dive straight in and figure it out by doing", scores:{entrepreneurial:3,technical:1} },
+    { text:"Watch someone experienced and learn by observing + asking questions", scores:{people:2,communication:1,research:1} },
+    { text:"Experiment creatively and find my own unique approach", scores:{creative:3,entrepreneurial:1} },
+  ]},
+  { category:"Natural Role", text:"In a group setting, you naturally drift toward being…", sub:"Think about school projects, work teams, or social groups.", options:[
+    { text:"The organiser — you bring structure and keep things on track", scores:{leadership:3,structured:2} },
+    { text:"The idea generator — you spark new directions and possibilities", scores:{creative:3,entrepreneurial:2} },
+    { text:"The connector — you bridge people and keep everyone aligned", scores:{people:3,communication:2} },
+    { text:"The expert — you go deep on the most complex part of the problem", scores:{analytical:3,technical:2} },
+  ]},
+  { category:"What You Value", text:"Which of these motivates you most in your work?", sub:"", options:[
+    { text:"Financial success and building wealth or a business", scores:{entrepreneurial:3,leadership:1} },
+    { text:"Making a genuine difference in people's lives", scores:{people:3,communication:1} },
+    { text:"Mastering a craft or becoming the best in my field", scores:{technical:3,analytical:2} },
+    { text:"Influence, impact, and shaping how things get done", scores:{leadership:3,structured:1} },
+  ]},
+  { category:"Communication", text:"When sharing an idea, you find it easiest to…", sub:"", options:[
+    { text:"Talk through it — I think out loud and love discussion", scores:{communication:3,people:2} },
+    { text:"Write it out — I structure my thoughts best through writing", scores:{analytical:2,research:2} },
+    { text:"Show it — visuals, demos, and examples make it click", scores:{creative:3,technical:1} },
+    { text:"Present it — I like framing a narrative that persuades people", scores:{communication:2,leadership:2} },
+  ]},
+  { category:"Thinking Style", text:"Which best describes how your mind works?", sub:"", options:[
+    { text:"I see patterns, connections, and hidden structure in information", scores:{analytical:3,research:2} },
+    { text:"I imagine possibilities and think in terms of what could be", scores:{creative:3,entrepreneurial:2} },
+    { text:"I think about people — what they need, feel, and how to help them", scores:{people:3,communication:2} },
+    { text:"I think in systems — how everything fits and flows together", scores:{technical:3,structured:2} },
+  ]},
+  { category:"Handling Conflict", text:"When there's a disagreement, you tend to…", sub:"", options:[
+    { text:"Rely on data and logic to find the most objective solution", scores:{analytical:2,structured:1} },
+    { text:"Listen deeply to everyone and find a middle ground", scores:{people:3,communication:2} },
+    { text:"Take a clear position and advocate strongly for it", scores:{leadership:3,communication:1} },
+    { text:"Reframe the problem creatively to find a path no one saw", scores:{creative:3,entrepreneurial:1} },
+  ]},
+  { category:"Interests & Curiosity", text:"In your free time, you're most likely to find yourself…", sub:"", options:[
+    { text:"Deep in an article, book, podcast, or research rabbit hole", scores:{research:3,analytical:2} },
+    { text:"Building, creating, or making something with my hands or tools", scores:{technical:3,creative:2} },
+    { text:"Connecting with people — catching up, meeting new folks, organising events", scores:{people:3,communication:2} },
+    { text:"Working on a side project, business idea, or creative pursuit", scores:{entrepreneurial:3,creative:2} },
+  ]},
+  { category:"Risk Appetite", text:"When it comes to uncertainty, you…", sub:"", options:[
+    { text:"Prefer stability — I do my best work when I know the rules", scores:{structured:3,analytical:1} },
+    { text:"Thrive on it — ambiguity means opportunity", scores:{entrepreneurial:3,creative:2} },
+    { text:"Manage it carefully with research and contingency plans", scores:{research:3,analytical:2} },
+    { text:"Embrace it when the mission is meaningful to me", scores:{people:2,leadership:2} },
+  ]},
+  { category:"Your Superpower", text:"People often come to you specifically because…", sub:"Be honest about what others actually rely on you for.", options:[
+    { text:"You explain complex things clearly and make hard stuff simple", scores:{communication:3,analytical:1} },
+    { text:"You come up with ideas and solutions no one else thought of", scores:{creative:3,entrepreneurial:2} },
+    { text:"You make people feel heard, supported, and understood", scores:{people:3,communication:2} },
+    { text:"You get things done — reliably, efficiently, and to a high standard", scores:{structured:3,leadership:2} },
+  ]},
+  { category:"Skills You've Developed", text:"Which area do you feel most naturally skilled in?", sub:"", options:[
+    { text:"Numbers, logic, data, or code — the precise and technical", scores:{technical:3,analytical:3} },
+    { text:"Words, stories, persuasion — communicating through language", scores:{communication:3,creative:2} },
+    { text:"Visuals, design, or aesthetics — making things look and feel right", scores:{creative:3,technical:1} },
+    { text:"Strategy, operations, or leading people toward a goal", scores:{leadership:3,structured:2} },
+  ]},
+  { category:"Impact Orientation", text:"Ultimately, you want your career to…", sub:"", options:[
+    { text:"Solve big intellectual or technical challenges", scores:{analytical:2,technical:2,research:1} },
+    { text:"Directly improve people's lives and wellbeing", scores:{people:3,communication:1} },
+    { text:"Build something of lasting value — a product, business, or legacy", scores:{entrepreneurial:3,creative:2} },
+    { text:"Shape systems, policy, or institutions for the better", scores:{leadership:3,research:1} },
+  ]},
+  { category:"Your Ideal Day", text:"Your ideal work environment looks like…", sub:"", options:[
+    { text:"A quiet desk, deep focus work, building or analysing something complex", scores:{technical:3,analytical:2} },
+    { text:"Moving around, meetings, conversations, and collaborating all day", scores:{people:3,communication:2} },
+    { text:"A studio, lab, or creative space with freedom to experiment", scores:{creative:3,entrepreneurial:1} },
+    { text:"Leading a team, setting direction, and making decisions that matter", scores:{leadership:3,structured:2} },
+  ]},
+];
+
+// ═══════════════════════════════════════════════════
+//  CAREERS
+// ═══════════════════════════════════════════════════
+const careers = [
+  { title:"Software Engineer / Developer", field:"Technology", icon:"💻", iconBg:"rgba(124,106,247,0.15)", weights:{technical:3.5,analytical:2.5,structured:1,entrepreneurial:0.5}, why:"Your analytical depth and love of systems thinking maps perfectly to engineering. You solve concrete problems with elegant logic, and your self-directed work style suits deep focus development.", roles:["Backend Engineer","Full-Stack Dev","Data Engineer","ML Engineer"] },
+  { title:"Product Manager", field:"Technology / Business", icon:"🎯", iconBg:"rgba(52,211,153,0.15)", weights:{leadership:2.5,communication:2.5,analytical:2,people:1.5,structured:1}, why:"You bridge technical and human worlds — translating user needs into product decisions. Your leadership instincts and ability to communicate across teams are your edge.", roles:["Product Manager","Product Lead","Programme Manager","Head of Product"] },
+  { title:"UX / Product Designer", field:"Design & Technology", icon:"🎨", iconBg:"rgba(244,114,182,0.15)", weights:{creative:3,people:2,analytical:1.5,communication:1}, why:"You think visually and deeply care about how people experience things. Your empathy drives design decisions, and your creative problem-solving turns user pain into elegant solutions.", roles:["UX Designer","Product Designer","Design Lead","UX Researcher"] },
+  { title:"Data Scientist / Analyst", field:"Data & Analytics", icon:"📊", iconBg:"rgba(251,146,60,0.15)", weights:{analytical:3.5,research:3,technical:2,structured:1}, why:"You love finding patterns in complexity. Your ability to extract insights from noise and communicate them clearly makes you invaluable in a data-driven world.", roles:["Data Scientist","Business Analyst","ML Researcher","Quant Analyst"] },
+  { title:"Entrepreneur / Founder", field:"Business & Startups", icon:"🚀", iconBg:"rgba(124,106,247,0.15)", weights:{entrepreneurial:4,creative:2,leadership:2,communication:1}, why:"You're driven to build and own your vision. Your comfort with risk, creative thinking, and drive to create something from scratch aligns with the founder's path.", roles:["Startup Founder","Indie Hacker","Creative Entrepreneur","Operator"] },
+  { title:"Marketing & Brand Strategist", field:"Marketing & Communications", icon:"📣", iconBg:"rgba(52,211,153,0.15)", weights:{communication:3.5,creative:2.5,people:2,analytical:1}, why:"You understand people and know how to move them. Your creative instincts combined with your communication strength makes you a natural at crafting narratives that resonate.", roles:["Brand Strategist","Growth Marketer","Content Director","CMO"] },
+  { title:"Consultant / Strategist", field:"Business & Strategy", icon:"🔬", iconBg:"rgba(251,146,60,0.15)", weights:{analytical:3,research:2.5,structured:2,leadership:1.5,communication:1.5}, why:"You excel at diagnosing complex problems and delivering clear recommendations. Your structured thinking and credibility under pressure makes you a trusted advisor.", roles:["Management Consultant","Strategy Analyst","Operations Consultant","VC Analyst"] },
+  { title:"Therapist / Coach / Counsellor", field:"Human & Social Services", icon:"🫂", iconBg:"rgba(244,114,182,0.15)", weights:{people:4,communication:3,analytical:1}, why:"Your deep empathy and ability to truly hear people is rare. You create safety that enables growth. Helping others navigate complexity — personally or professionally — is your calling.", roles:["Therapist","Life Coach","Career Coach","Organisational Psychologist"] },
+  { title:"Researcher / Academic", field:"Research & Education", icon:"🧪", iconBg:"rgba(124,106,247,0.15)", weights:{research:4,analytical:3,technical:1.5,structured:1}, why:"You thrive in depth. The pursuit of knowledge for its own sake, rigorous methodology, and synthesising complex information into new understanding defines your ideal work.", roles:["Academic Researcher","Policy Analyst","R&D Scientist","Investigative Journalist"] },
+  { title:"Educator / Teacher / Trainer", field:"Education & Learning", icon:"📚", iconBg:"rgba(52,211,153,0.15)", weights:{communication:3,people:3,analytical:1.5,structured:1.5}, why:"You have a gift for making things click for others. Your patience, clarity, and care for people's growth makes you a force multiplier — you make others better.", roles:["Teacher","Corporate Trainer","Curriculum Designer","EdTech Creator"] },
+  { title:"Operations / Project Manager", field:"Business Operations", icon:"⚙️", iconBg:"rgba(251,146,60,0.15)", weights:{structured:4,leadership:2.5,analytical:2,people:1.5}, why:"You are the engine that makes things work. Your systematic mind, love of process, and ability to coordinate complexity into smooth delivery is an organisational superpower.", roles:["Operations Manager","Project Manager","Chief of Staff","Programme Director"] },
+  { title:"Creative Director / Writer", field:"Creative & Media", icon:"✍️", iconBg:"rgba(244,114,182,0.15)", weights:{creative:4,communication:3,entrepreneurial:1.5}, why:"You see the world differently and have the talent to make others see it your way. Your creative vision and expressive power can shape culture, brand, and narrative.", roles:["Creative Director","Copywriter","Author","Content Strategist","Art Director"] },
+];
+
+// ═══════════════════════════════════════════════════
+//  ARCHETYPES
+// ═══════════════════════════════════════════════════
+const archetypes = [
+  { id:"builder", emoji:"🏗️", title:"The Builder", desc:"You are driven to create tangible things — software, businesses, products, systems. You get energy from seeing something come to life that wasn't there before. You're happiest when you have ownership, autonomy, and real impact on the output.", traits:[{label:"Self-directed",color:"#7c6af7"},{label:"Output-oriented",color:"#7c6af7"},{label:"Pragmatic",color:"#34d399"},{label:"Resilient",color:"#34d399"}], match:(s)=>(s.technical+s.entrepreneurial+s.creative)/3 },
+  { id:"analyst",  emoji:"🔭", title:"The Deep Thinker", desc:"You are energised by intellectual challenge. You want to understand things completely — not just the surface, but the underlying mechanics. You seek truth in data, patterns, and rigorously tested ideas.", traits:[{label:"Curious",color:"#7c6af7"},{label:"Detail-oriented",color:"#7c6af7"},{label:"Systematic",color:"#fb923c"},{label:"Precise",color:"#fb923c"}], match:(s)=>(s.analytical+s.research+s.technical)/3 },
+  { id:"connector",emoji:"🌐", title:"The Connector", desc:"You read rooms, build trust, and bring people together. Your emotional intelligence is your greatest asset. You don't just move information — you move people. Relationships, community, and impact through others defines your best work.", traits:[{label:"Empathetic",color:"#f472b6"},{label:"Influential",color:"#f472b6"},{label:"Collaborative",color:"#34d399"},{label:"Trustworthy",color:"#34d399"}], match:(s)=>(s.people+s.communication+s.leadership)/3 },
+  { id:"visionary",emoji:"🌈", title:"The Visionary", desc:"You live in possibilities. You see what others can't yet imagine, connect dots across domains, and are fuelled by the excitement of creating something new. You are a natural creative force who thrives at the frontier.", traits:[{label:"Imaginative",color:"#7c6af7"},{label:"Intuitive",color:"#7c6af7"},{label:"Risk-taking",color:"#fb923c"},{label:"Inspiring",color:"#34d399"}], match:(s)=>(s.creative+s.entrepreneurial+s.communication)/3 },
+  { id:"director", emoji:"🎯", title:"The Director", desc:"You have a clear sense of direction and the drive to take people there. You are goal-oriented, decisive, and capable of holding the big picture while managing the details. You were born to lead missions that matter.", traits:[{label:"Strategic",color:"#7c6af7"},{label:"Decisive",color:"#7c6af7"},{label:"Accountable",color:"#34d399"},{label:"High standards",color:"#34d399"}], match:(s)=>(s.leadership+s.structured+s.communication)/3 },
+];
+
+// ═══════════════════════════════════════════════════
+//  QUESTION RENDERING
+// ═══════════════════════════════════════════════════
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('qCategory').textContent = q.category;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('qSub').textContent = q.sub || '';
+  document.getElementById('btnBack').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+  document.getElementById('stepCounter').textContent = `${currentQ + 1} / ${questions.length}`;
+
+  document.getElementById('qDots').innerHTML = questions.map((_,i) => {
+    let cls = 'q-dot';
+    if (i < currentQ) cls += ' done';
+    if (i === currentQ) cls += ' current';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+
+  document.getElementById('optionsGrid').innerHTML = q.options.map((opt, i) => {
+    const letters = ['A','B','C','D'];
+    const sel = answers[currentQ] === i ? ' selected' : '';
+    return `<div class="option-card${sel}" onclick="selectOption(${i})">
+      <div class="option-letter">${letters[i]}</div>
+      <div class="option-text">${opt.text}</div>
+    </div>`;
+  }).join('');
+
+  updateNextBtn();
+  updateProgress();
+}
+
+function selectOption(idx) {
+  answers[currentQ] = idx;
+  document.querySelectorAll('.option-card').forEach((c,i) => c.classList.toggle('selected', i === idx));
+  updateNextBtn();
+}
+
+function updateNextBtn() {
+  const btn = document.getElementById('btnNext');
+  const hasAnswer = answers[currentQ] !== null;
+  btn.classList.toggle('ready', hasAnswer);
+  btn.textContent = currentQ === questions.length - 1 ? 'See My Results →' : 'Continue →';
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  if (currentQ < questions.length - 1) { currentQ++; renderQuestion(); }
+  else { computeAndShowResults(); }
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+function updateProgress() {
+  const done = answers.filter(a => a !== null).length;
+  document.getElementById('progressBar').style.width = (done / questions.length * 100) + '%';
+}
+
+// ═══════════════════════════════════════════════════
+//  SCORING
+// ═══════════════════════════════════════════════════
+function computeScores() {
+  const dims = ['analytical','creative','people','technical','leadership','research','structured','entrepreneurial','communication'];
+  const s = {}; dims.forEach(d => s[d] = 0);
+  answers.forEach((ansIdx, qIdx) => {
+    if (ansIdx === null) return;
+    Object.entries(questions[qIdx].options[ansIdx].scores).forEach(([dim, val]) => { s[dim] = (s[dim]||0) + val; });
+  });
+  dims.forEach(d => { s[d] = Math.min(100, Math.round((s[d] / 42) * 100)); });
+  return s;
+}
+
+function scoreCareer(career, s) {
+  let total = 0, ws = 0;
+  Object.entries(career.weights).forEach(([dim, w]) => { total += (s[dim]||0)/100 * w; ws += w; });
+  return Math.min(98, Math.round((total / ws) * 100));
+}
+
+// ═══════════════════════════════════════════════════
+//  COMPUTE & SHOW
+// ═══════════════════════════════════════════════════
+function computeAndShowResults() {
+  showScreen('loading');
+  document.getElementById('stepCounter').textContent = '';
+  document.getElementById('progressBar').style.width = '100%';
+  ['ls1','ls2','ls3','ls4'].forEach((id,i) => setTimeout(() => document.getElementById(id).classList.add('show'), 400 + i*600));
+  setTimeout(() => {
+    scores = computeScores();
+    renderResults(scores, true);
+    showScreen('results');
+    animateBars();
+  }, 3200);
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER RESULTS
+// ═══════════════════════════════════════════════════
+function renderResults(s, isNew) {
+  const archetype = archetypes.reduce((best,a) => a.match(s) > best.match(s) ? a : best, archetypes[0]);
+  const scored = careers.map(c => ({...c, score: scoreCareer(c, s)})).sort((a,b) => b.score - a.score);
+  const topCareer = scored[0];
+
+  // Save if logged in and new assessment
+  if (isNew && currentUser && !isGuest) {
+    const resultData = {
+      date: new Date().toISOString(),
+      archetypeEmoji: archetype.emoji,
+      archetypeTitle: archetype.title,
+      topCareer: topCareer.title,
+      topScore: topCareer.score,
+      scores: s,
+    };
+    pushResult(currentUser.id, resultData);
+    lastResultData = resultData;
+  }
+
+  // Save/unsaved banner
+  const banner = document.getElementById('resultsSaveBanner');
+  if (isNew && currentUser && !isGuest) {
+    banner.innerHTML = `<div class="save-banner"><span class="save-banner-icon">✅</span> Results saved to your profile, ${currentUser.name.split(' ')[0]}!</div>`;
+  } else if (isNew && isGuest) {
+    banner.innerHTML = `<div class="unsaved-banner"><span class="unsaved-banner-text">💡 Create a free account to save these results and track your progress</span><button class="unsaved-btn" onclick="showScreen('signup')">Save my results →</button></div>`;
+  } else {
+    banner.innerHTML = '';
+  }
+
+  document.getElementById('resultsTitle').textContent = `You're ${['a','e','i','o','u'].includes(archetype.title[4].toLowerCase()) ? 'an' : 'a'} ${archetype.title}`;
+  document.getElementById('resultsSub').textContent = `Based on your behavioural patterns and responses, we've mapped your profile across 9 dimensions and identified the career paths most aligned with how you think, work, and create.`;
+  document.getElementById('profileAvatar').textContent = archetype.emoji;
+  document.getElementById('profileType').textContent = archetype.title;
+  document.getElementById('profileDesc').textContent = archetype.desc;
+  document.getElementById('traitList').innerHTML = archetype.traits.map(t => `<div class="trait-chip"><div class="tdot" style="background:${t.color}"></div>${t.label}</div>`).join('');
+
+  // Dimensions
+  const dimMeta = { analytical:['Analytical','purple'], creative:['Creative','pink'], people:['People Skills','green'], technical:['Technical','purple'], leadership:['Leadership','orange'], research:['Research','purple'], structured:['Structure','orange'], entrepreneurial:['Entrepreneurial','green'], communication:['Communication','pink'] };
+  const sortedDims = Object.entries(dimMeta).map(([k,[label,color]]) => ({key:k,label,color,val:s[k]})).sort((a,b)=>b.val-a.val).slice(0,6);
+  document.getElementById('dimsContainer').innerHTML = sortedDims.map(d => `
+    <div class="dim-row">
+      <div class="dim-label">${d.label}</div>
+      <div class="dim-bar-track"><div class="dim-bar-fill ${d.color}" data-target="${d.val}" style="width:0%"></div></div>
+      <div class="dim-pct">${d.val}%</div>
+    </div>`).join('');
+
+  // Skills
+  const skillMap = {
+    analytical:[{icon:'🔍',name:'Critical Analysis',desc:'Breaking complex problems into their root components'},{icon:'📐',name:'Logical Reasoning',desc:'Constructing airtight arguments and spotting flaws in thinking'}],
+    creative:  [{icon:'💡',name:'Ideation',desc:'Generating novel ideas and seeing unexpected connections'},{icon:'🎨',name:'Creative Problem-Solving',desc:'Finding non-obvious solutions through creative reframing'}],
+    people:    [{icon:'🫂',name:'Emotional Intelligence',desc:'Reading emotions and responding with empathy and care'},{icon:'🤝',name:'Relationship Building',desc:'Creating trust and genuine connection quickly'}],
+    technical: [{icon:'⚙️',name:'Systems Thinking',desc:'Understanding how components interact in complex systems'},{icon:'🛠️',name:'Technical Execution',desc:'Turning abstract requirements into working solutions'}],
+    leadership:[{icon:'🧭',name:'Strategic Vision',desc:'Seeing the big picture and charting a path forward'},{icon:'📢',name:'Influence & Direction',desc:'Mobilising others around a clear goal or idea'}],
+    research:  [{icon:'🔬',name:'Deep Research',desc:'Going further than surface knowledge to find real insights'},{icon:'📝',name:'Synthesis & Writing',desc:'Distilling complex info into clear, compelling content'}],
+    structured:[{icon:'📋',name:'Planning & Organisation',desc:'Turning chaos into clear, executable plans'},{icon:'✅',name:'Execution Excellence',desc:'Delivering reliably, on time, to a high standard'}],
+    entrepreneurial:[{icon:'🚀',name:'Opportunity Spotting',desc:'Seeing gaps in markets and moving fast to fill them'},{icon:'⚡',name:'Bias to Action',desc:'Moving from idea to experiment without over-planning'}],
+    communication:[{icon:'🗣️',name:'Persuasion & Storytelling',desc:'Crafting narratives that move people to think or act differently'},{icon:'📡',name:'Clarity Under Complexity',desc:'Making complicated things simple for any audience'}],
+  };
+  const shownSkills = [];
+  sortedDims.slice(0,4).forEach(d => (skillMap[d.key]||[]).forEach(sk => shownSkills.push(sk)));
+  document.getElementById('skillsWrap').innerHTML = shownSkills.slice(0,6).map(sk => `
+    <div class="skill-card"><div class="skill-icon">${sk.icon}</div><div class="skill-name">${sk.name}</div><div class="skill-desc">${sk.desc}</div></div>`).join('');
+
+  // Careers
+  document.getElementById('careerGrid').innerHTML = scored.slice(0,5).map((c,i) => `
+    <div class="career-card ${i===0?'top':''}">
+      <div class="career-header">
+        <div class="career-icon" style="background:${c.iconBg}">${c.icon}</div>
+        <div class="career-info"><div class="career-title">${c.title}</div><div class="career-field">${c.field}</div></div>
+      </div>
+      <div class="match-bar-row">
+        <div class="match-pct">${c.score}%</div>
+        <div class="match-track"><div class="match-fill" data-target="${c.score}" style="width:0%"></div></div>
+      </div>
+      <div class="career-why">${c.why}</div>
+      <div class="career-roles">${c.roles.map(r=>`<span class="role-pill">${r}</span>`).join('')}</div>
+    </div>`).join('');
+
+  // Next Steps
+  const steps = generateNextSteps(topCareer, archetype, s);
+  document.getElementById('stepsList').innerHTML = steps.map((step,i) => `
+    <div class="step-item">
+      <div class="step-num">${i+1}</div>
+      <div class="step-body">
+        <div class="step-title">${step.title}</div>
+        <div class="step-desc">${step.desc}</div>
+        <span class="step-tag">${step.tag}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  NEXT STEPS GENERATOR
+// ═══════════════════════════════════════════════════
+function generateNextSteps(topCareer, archetype, s) {
+  const steps = [];
+  steps.push({ title:`Write your "${archetype.title}" manifesto`, desc:`Spend 20 minutes writing down the 3 situations where you feel most in flow — most like yourself. These are your proof points. You'll use them in interviews, conversations, and when deciding between opportunities.`, tag:"Today — 20 mins" });
+  const careerSteps = {
+    "Software Engineer / Developer":       { title:"Build something small this week", desc:"Pick a micro-project (a simple app, script, or tool) and ship it within 7 days. Doesn't matter what it does — the goal is to close the loop from idea to working thing.", tag:"This Week" },
+    "Product Manager":                     { title:"Write a teardown of a product you use daily", desc:"Choose an app you use every day and write a 1-page analysis: what's the core user problem, what does the product do well, what would you change, and why? This is the exact skill PMs use every day.", tag:"This Week" },
+    "UX / Product Designer":               { title:"Redesign one screen of your favourite app", desc:"Pick a single app screen you find frustrating and redesign it in Figma (free). Focus on clarity and user flow. Share it on LinkedIn or Dribbble. This is your first portfolio piece.", tag:"This Weekend" },
+    "Data Scientist / Analyst":            { title:"Complete one Kaggle challenge (beginner)", desc:"Go to kaggle.com, pick a beginner dataset, and write one analysis or model. The process of formulating a question, exploring data, and presenting a finding is the core data skill loop.", tag:"This Week" },
+    "Entrepreneur / Founder":              { title:"Validate one idea with 5 real conversations", desc:"Pick your most exciting idea and have 5 honest conversations with potential users — not to pitch, but to listen. Ask: what's their biggest pain? Would they pay for a solution?", tag:"This Week" },
+    "Marketing & Brand Strategist":        { title:"Write and publish one piece of content", desc:"Pick one genuine insight you have and write a LinkedIn post, short essay, or Twitter thread about it. Don't aim for perfect — aim for real. Marketing careers are built on consistent, original thinking made public.", tag:"Today" },
+    "Consultant / Strategist":             { title:"Solve a real problem for someone in your network pro bono", desc:"Find someone with a business challenge and offer to deliver a short strategy recommendation. This gives you a real case study, sharpens your thinking, and starts your consulting reputation.", tag:"This Month" },
+    "Therapist / Coach / Counsellor":      { title:"Offer 3 pro-bono coaching conversations", desc:"Reach out to 3 people in your network who are at a crossroads and offer a structured 45-min conversation. Use it to practise active listening and asking powerful questions.", tag:"This Month" },
+    "Researcher / Academic":               { title:"Write a 500-word synthesis on something you've been researching", desc:"Take the topic you've been reading about most and distil it into a clear, original 500-word piece. Practice making the complex accessible. Publish it somewhere — a blog, Medium, LinkedIn.", tag:"This Week" },
+    "Educator / Teacher / Trainer":        { title:"Teach one thing you know to someone who doesn't", desc:"Identify one skill or topic you understand well and run a 30-min session — informal is fine. A friend, family member, or colleague. Notice what's hard to explain. That's where your curriculum work begins.", tag:"This Week" },
+    "Operations / Project Manager":        { title:"Map and improve one process in your current work or life", desc:"Choose any recurring process — how you manage email, run a meeting, track a project — and spend an hour mapping it out and designing an improved version. This is the daily work of operations.", tag:"This Weekend" },
+    "Creative Director / Writer":          { title:"Write something and share it publicly today", desc:"A short story, an essay, a piece of creative copy — whatever form excites you most. Publish it somewhere others can read it. The practice of making creative work public is the entire creative career.", tag:"Today" },
+  };
+  steps.push(careerSteps[topCareer.title] || { title:"Map 5 people doing what you want to do", desc:"Search LinkedIn for people in your top career path and study their journeys. How did they get there? What did they study? Where did they start?", tag:"Today — 30 mins" });
+  const topDim = Object.entries(s).sort(([,a],[,b])=>b-a)[0][0];
+  const skillSteps = {
+    analytical:      { title:"Read 'Thinking, Fast and Slow' by Kahneman", desc:"This is the canonical book on how analytical minds work — and where they go wrong. It will sharpen your thinking and give you a shared language with everyone in data, strategy, and decision-making.", tag:"Start This Week" },
+    creative:        { title:"Start a 'swipe file' of creative work that inspires you", desc:"Create a folder where you collect brilliant creative work — ads, writing, design, ideas. Review it weekly. This is how creatives build their taste.", tag:"Start Today" },
+    people:          { title:"Listen to 3 episodes of 'Dare to Lead' by Brené Brown", desc:"Brown's podcast and book directly address how empathy, vulnerability, and human connection are leadership superpowers. Essential for anyone whose strength is people.", tag:"This Week" },
+    technical:       { title:"Pick one technical certification and start today", desc:"Whether it's AWS, Google Data Analytics, a coding bootcamp, or a specific tool — technical credentials signal capability to employers. Pick the one most relevant to your top career path and start.", tag:"This Week" },
+    leadership:      { title:"Read 'High Output Management' by Andy Grove", desc:"One of the most respected books on operational leadership. Grove explains how to maximise the output of a team — essential reading for anyone who wants to lead at a high level.", tag:"Start This Week" },
+    research:        { title:"Subscribe to one great newsletter and write responses", desc:"Find the best thought-leadership newsletter in your field and for 4 weeks, write a 100-word response to each issue. This trains you to engage critically with ideas — the foundation of research.", tag:"Today" },
+    structured:      { title:"Learn and implement one productivity system this week", desc:"Whether it's GTD, time-blocking, or a project management tool — commit to one system fully for 30 days. People with structural minds need strong systems to channel their precision.", tag:"This Week" },
+    entrepreneurial: { title:"Read 'The Mom Test' by Rob Fitzpatrick", desc:"The best short book on how to talk to customers and validate ideas without lying to yourself. Essential reading before building anything. Can be read in 2 hours.", tag:"Today" },
+    communication:   { title:"Join Toastmasters or start a daily writing habit", desc:"Communication is the highest-leverage skill in every career. Join a local Toastmasters group, or commit to writing 300 words daily for 30 days. Both will compound faster than you expect.", tag:"This Week" },
+  };
+  steps.push(skillSteps[topDim] || { title:"Identify your skill gap and start one course", desc:"Look at job descriptions for your top career path. What skills appear most? Identify the one gap you have, find the best resource, and start today.", tag:"This Week" });
+  steps.push({ title:"Reach out to 3 people in your target field on LinkedIn", desc:"Write a short, honest message: who you are, why you're drawn to their field, and one specific question you'd love their perspective on. Not asking for a job — asking for insight. Most people say yes.", tag:"This Week" });
+  steps.push({ title:"Create a 90-day career experiment plan", desc:`You now have a clear direction: ${topCareer.title}. Set 3 goals for the next 90 days: one learning goal, one creation/portfolio goal, and one network goal. Review weekly. Most careers don't happen by accident — they happen by consistent, intentional effort.`, tag:"This Weekend — 1 hour" });
+  return steps;
+}
+
+// ═══════════════════════════════════════════════════
+//  BAR ANIMATION
+// ═══════════════════════════════════════════════════
+function animateBars() {
+  setTimeout(() => {
+    document.querySelectorAll('.dim-bar-fill[data-target]').forEach(el => { el.style.width = el.dataset.target + '%'; });
+    document.querySelectorAll('.match-fill[data-target]').forEach(el => { el.style.width = el.dataset.target + '%'; });
+  }, 300);
+}
+
+// ═══════════════════════════════════════════════════
+//  COPY / SHARE
+// ═══════════════════════════════════════════════════
+function copyResults() {
+  const archName = document.getElementById('profileType').textContent;
+  const topPct   = document.querySelector('.match-pct')?.textContent || '';
+  const topTitle = document.querySelector('.career-title')?.textContent || '';
+  const text = `🧬 My Career DNA (via PathFinder by Demi Adewole)\n\nArchetype: ${archName}\nTop Career Match: ${topTitle} (${topPct} fit)\n\nTry it yourself → [open career-discovery.html]`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-share');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = orig, 2200);
+  });
+}
+
+function restart() {
+  currentQ = 0; answers = new Array(questions.length).fill(null);
+  showScreen('hero'); renderHeroCTA();
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('stepCounter').textContent = '';
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+updateNav();
+renderHeroCTA();
+</script>
+</body>
+</html>
